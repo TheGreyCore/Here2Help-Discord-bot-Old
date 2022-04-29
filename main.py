@@ -134,41 +134,6 @@ async def on_member_join(member):
             await welcome.send(text)
 
 # Käsk tervituskanali lisamiseks
-@bot.command()
-async def rolemenu(ctx, messageid, role1: discord.Role, emoji1, role2: discord.Role = None, emoji2 = None, role3: discord.Role = None, emoji3 = None, role4: discord.Role = None, emoji4 = None, role5: discord.Role = None, emoji5 = None):
-    if ctx.author.guild_permissions.kick_members != None or check_status(ctx) == 1:
-        try:
-            role1 = role1.id
-        except:
-            pass
-        try:
-            role2 = role2.id
-        except:
-            pass
-        try:
-            role3 = role3.id
-        except:
-            pass
-        try:
-            role4 = role4.id
-        except:
-            pass
-        try:
-            role5 = role5.id
-        except:
-            pass
-        
-        cursor.execute(f"""INSERT INTO rolemenu(messageid, role1, emoji1,role2, emoji2,role3, emoji3,role4, emoji4,role5, emoji5) 
-        VALUES(?,?,?,?,?,?,?,?,?,?,?)""",(str(messageid),str(role1),str(emoji1),str(role2),str(emoji2),str(role3),str(emoji3),str(role4),str(emoji4),str(role5),str(emoji5),))
-        conn.commit() 
-        message = await ctx.fetch_message(messageid)
-        await message.add_reaction(str(emoji1))
-        await message.add_reaction(str(emoji2))
-        await message.add_reaction(str(emoji3))
-        await message.add_reaction(str(emoji4))
-        await message.add_reaction(str(emoji5))
-
-# Käsk tervituskanali lisamiseks
 @bot.command(aliases=['setwelcomechannel', 'welcome'])
 async def setgreetingchannel(ctx, arg: discord.TextChannel):
     await ctx.channel.purge( limit = 1)
