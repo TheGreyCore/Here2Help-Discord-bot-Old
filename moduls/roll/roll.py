@@ -2,7 +2,7 @@
 # ------------------------------------
 import asyncio
 import sys
-sys.path.insert(0, '/root/AvianaBot')
+sys.path.insert(0, '/root/loovtoo')
 # ------------------------------------
 import discord
 from discord.ext import commands
