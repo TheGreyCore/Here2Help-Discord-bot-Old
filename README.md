@@ -11,7 +11,7 @@ A step by step series of examples that tell you how to get a development env run
 
 Clone repository or download it:
 ```
-git clone https://github.com/TheGreyCord/DiscordBot](https://github.com/TheGreyCord/Here2Help-Discord-bot
+git clone https://github.com/TheGreyCord/Here2Help-Discord-bot
 ```
 
 I recommend use virtual environment:
