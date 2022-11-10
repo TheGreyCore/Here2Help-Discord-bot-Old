@@ -1,8 +1,9 @@
 # -*- coding: utf8 -*-
 # ------------------------------------
 import asyncio
+import os
 import sys
-sys.path.insert(0, '/root/loovtoo')
+sys.path.insert(0, f'{os.path.dirname()}')
 # ------------------------------------
 import discord
 from discord.ext import commands
@@ -13,10 +14,10 @@ import re
 from config import settings
 # ------------------------------------
 
-conn = sqlite3.connect(settings['DB'])
+conn = sqlite3.connect("db.db")
 cursor = conn.cursor()
 
-# Проверка статуса
+# Check if user has permission
 def check_status(ctx):
     var_has_permmission = 'None'
     for var_has_permmission in cursor.execute("SELECT player_has_moderator_permission FROM player_info WHERE server_id= (?) AND player_id = (?) ", (str(ctx.guild.id), str(ctx.author.id))):
@@ -25,24 +26,25 @@ def check_status(ctx):
         else:
             return 0
 
-#iga 10 sekkundi taga kontrollib kas kellegil on aegunud blokkering
+# Every 10 seconds check unban list
 async def unban(bot):
-    while True: #Teeb sega igavesti
-        for info in cursor.execute("SELECT User_ID, Date, Server_ID FROM banned"): #lisame järjendisse infod rikkuja ID-st, kuupäevast ja serveri ID-st
-            now = datetime.now() # Võttame praeguse aja
-            if info[1] <= str(now): # Võrdleme kas kellegil on aegunud blokkering
-                guild = bot.get_guild(int(info[2])) # saame kätte serveri class-i
-                banned_users = await guild.bans()  #saame kätte kõiki kes on serveril blokkeridud
+    while True:
+        for info in cursor.execute("SELECT User_ID, Date, Server_ID FROM banned"):
+            now = datetime.now()
+            if info[1] <= str(now):
+                guild = bot.get_guild(int(info[2]))
+                banned_users = await guild.bans()
                 for ban_entry in banned_users: 
                     user = ban_entry.user
-                    if str(user) == info[0]: #Võrdleme iga ühe nime rikkujaga
+                    if str(user) == info[0]:
                         print(f'User {info[0]} unbanned.')
-                        await guild.unban(user) #Võttame blokkeringu maha
-                        cursor.execute("DELETE FROM banned WHERE server_id = (?) AND User_ID = (?)",[str(guild.id), str(info[0])]) #kustutame andmebaasist tema nime
-                        conn.commit() #salvestame andmebaasi
-        await asyncio.sleep(10) #10 sekundiline paus
+                        await guild.unban(user)
+                        cursor.execute("DELETE FROM banned WHERE server_id = (?) AND User_ID = (?)",[str(guild.id), str(info[0])])
+                        conn.commit()
+        await asyncio.sleep(10)
 
-# Käsk moderaatori lisamiseks
+
+# Command for add moderator
 @commands.command()
 @commands.has_permissions( administrator = True)
 async def addmoder(message, arg: discord.User):
@@ -50,12 +52,12 @@ async def addmoder(message, arg: discord.User):
     conn.commit()
     await message.channel.purge( limit = 1)
     embed = discord.Embed(title = 'Successfully!', description =f'New moderator is {arg.mention}', colour = discord.Colour.from_rgb(0, 204, 0))
-    embed.set_author(name =f'Loovtöö Bot', url=embed.Empty , icon_url= settings['avatar'])
+    embed.set_author(name =f"{settings['bot']}", url=embed.Empty , icon_url= settings['avatar'])
     embed.set_footer(text =f'For {message.author.name}.', icon_url=message.author.display_avatar)
     await message.send(embed=embed)
 
 
-# Käsk moderaatori kustutamiseks
+# Command for remove moderator
 @commands.command()
 @commands.has_permissions( administrator = True)
 async def removemoder(message, arg: discord.User):
@@ -66,10 +68,11 @@ async def removemoder(message, arg: discord.User):
     embed.set_footer(text =f'For {message.author.name}.', icon_url=message.author.display_avatar)
     await message.send(embed=embed)
 
-# Vaigistus
+
+# Mute user
 @commands.command()
 async def mute(ctx, member: discord.Member, time = None, *, reason: str = 'Violating rules'):
-    if ctx.author.guild_permissions.mute_members != None or check_status(ctx) == 1:
+    if ctx.author.guild_permissions.mute_members == True or check_status(ctx) == 1:
         if time == None:
             mute_time =[0,0,10]
         else:
@@ -95,8 +98,7 @@ async def mute(ctx, member: discord.Member, time = None, *, reason: str = 'Viola
             mute_time.append(x)
         else:
             mute_time.append(0)
-        
-        
+
         mute_time_final = datetime.now() + timedelta(days = int(mute_time[0]), hours= int(mute_time[1]), minutes= int(mute_time[1])) - timedelta(hours = 2)
         await member.timeout(mute_time_final)
         for ID in cursor.execute("SELECT COUNT (User_ID) FROM warns WHERE Server_ID = (?) AND Server_ID = (?)", (str(ctx.guild.id),str(ctx.guild.id))):
@@ -108,10 +110,11 @@ async def mute(ctx, member: discord.Member, time = None, *, reason: str = 'Viola
     else:
         pass
 
-# Võtame maha vaigustuse
+
+# Unmute user
 @commands.command()
 async def unmute(ctx, member: discord.Member):
-    if ctx.author.guild_permissions.mute_members != None or check_status(ctx) == 1:
+    if ctx.author.guild_permissions.mute_members == True or check_status(ctx) == 1:
         await member.remove_timeout()
         embed = discord.Embed(title = f'{member} has unmuted!', description =f'', colour = discord.Colour.from_rgb(0, 204, 0))
         embed.set_footer(text =f'By {ctx.author.name}.', icon_url=ctx.author.display_avatar)
@@ -119,10 +122,11 @@ async def unmute(ctx, member: discord.Member):
     else:
         pass
 
-#Lisame hoiatuse
+
+# Warn user
 @commands.command()
 async def warn(ctx, user: discord.User, *, reason: str):
-    if ctx.author.guild_permissions.mute_members != None or check_status(ctx) == 1:
+    if ctx.author.guild_permissions.mute_members == True or check_status(ctx) == 1:
         for ID in cursor.execute("SELECT COUNT (User_ID) FROM warns WHERE Server_ID = (?) AND Server_ID = (?)", (str(ctx.guild.id),str(ctx.guild.id))):
             cursor.execute(f"INSERT INTO warns(User_ID, Warn_Text, Server_ID, Moderador_ID,Type,ID, Moderador_Name) VALUES(?,?,?,?,?,?,?)",(str(user.id), str(reason), str(ctx.guild.id), str(ctx.author.id),'Warned',str(ID[0]+1), str(ctx.author)))
             conn.commit()
@@ -132,10 +136,11 @@ async def warn(ctx, user: discord.User, *, reason: str):
     else:
         pass
 
-#Võttame maha hoiatuse
+
+# Unwarn user
 @commands.command()
 async def unwarn(ctx, user: discord.User, ID):
-    if ctx.author.guild_permissions.mute_members != None or check_status(ctx) == 1:
+    if ctx.author.guild_permissions.mute_members == True or check_status(ctx) == 1:
         cursor.execute("DELETE FROM warns WHERE User_ID = (?) AND ID = (?)",[str(user.id), str(ID)])
         conn.commit()
         embed = discord.Embed(title = f'{user} has unwarned!', description =f'{ID}. warn were taken.', colour = discord.Colour.from_rgb(0, 204, 0))
@@ -145,7 +150,8 @@ async def unwarn(ctx, user: discord.User, ID):
         pass
 
 
-# Варнлог --------------------------------------------------------СЛОМАН--------------------------------------------------------
+# Warnlog --------------------------------------------------------Broken--------------------------------------------------------
+"""
 @commands.command()
 async def warnlog(ctx, user: discord.User = None):
     if user == None:
@@ -159,13 +165,13 @@ async def warnlog(ctx, user: discord.User = None):
         #print (commands.Bot.get_user(307565643593678858,))
         embed.add_field(name = f"{warns[3]} by {warns[1]}", value= f'ID:{warns[2]} || {warns[0]}', inline=True) #Ошибка
     await ctx.send(embed=embed)
+"""
 
-#Käsk blokeerimiseks
+
+# Ban command
 @commands.command()
-@commands.has_permissions( ban_members = True) #kontrollin kas kasutajal on õigus blokeerida kasutajaid.
+@commands.has_permissions( ban_members = True)
 async def ban(ctx, user: discord.Member, time = None, *, reason: str = 'Reeglite rikkumine.'):
-    #-----------------------------------------------
-    # Vajalik et teha sõnest formaatis XdXhXm järjend kus 0 on päevad 1 on tunnid ja 2 minutid. Järjendi nimi on muutedud.
     if time == None:
         ban_time =[0,0,10]
     else:
@@ -199,29 +205,28 @@ async def ban(ctx, user: discord.Member, time = None, *, reason: str = 'Reeglite
     embed.add_field(name = f'Reason', value = f'{reason}')
     embed.set_footer(text =f'Moderator: {ctx.author.name}.', icon_url=ctx.author.display_avatar)
     await user.send(embed = embed)
-    #-----------------------------------------------
-    # Lisame andmebaasi info
-    cursor.execute("INSERT INTO banned(User_ID, Reason, Server_ID, Moderador_ID, Date) VALUES(?,?,?,?,?)",(str(user), reason, str(ctx.guild.id), str(ctx.author.id),str(ban_time_final)))
-    conn.commit() #Salvestab andmebaasi
-    await user.ban(reason = reason) #Blokeerin kasutaja
 
-    #Saatan sõnumi et kasutaja on blokeeridud
+    cursor.execute("INSERT INTO banned(User_ID, Reason, Server_ID, Moderador_ID, Date) VALUES(?,?,?,?,?)",(str(user), reason, str(ctx.guild.id), str(ctx.author.id),str(ban_time_final)))
+    conn.commit()
+    await user.ban(reason = reason)
+
     embed = discord.Embed(title = f'{user} has banned!', description = '', colour = discord.Colour.from_rgb(0, 204, 0))
     embed.set_footer(text =f'Moderator: {ctx.author.name}.', icon_url=ctx.author.display_avatar)
     await ctx.send(embed = embed)
 
-#clear
+
+# Clear command
 @commands.command()
 async def clear(ctx, arg):
-    if ctx.author.guild_permissions.manage_messages != None or check_status(ctx) == 1:
+    if ctx.author.guild_permissions.manage_messages == True or check_status(ctx) == 1:
         await ctx.channel.purge( limit = int(arg) + 1)
     else:
         pass
 
 def setup(bot):
-    # Lisame käsu käsu listi
+    # Add commands
     bot.add_command(ban)
-    bot.add_command(warnlog)
+    # bot.add_command(warnlog)
     bot.add_command(unwarn)
     bot.add_command(warn)
     bot.add_command(unmute)

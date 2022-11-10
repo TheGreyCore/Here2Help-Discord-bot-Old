@@ -1,13 +1,12 @@
 settings = {
-    'token': '', 
-    'bot': 'Loovtöö Bot',
-    'id': '',
-    'Author': 'Dmitri Matetski',
-    'Version': '1.0.5',
+    'token': '',
+    'bot': 'Here2Help',
+    'id': 111111111,
+    'Author': '',
+    'Version': '1.1.1',
     'Lang': 'ENG',
     'premmision': '1374863748342',
-    'avatar' : 'https://discord.com/assets/6f26ddd1bf59740c536d2274bb834a05.png',
-    'DB': 'db.db',
+    'avatar': '',
 }
 
 link = f"https://discordapp.com/oauth2/authorize?&client_id={settings['id']}&scope=bot&permissions={settings['premmision']}"

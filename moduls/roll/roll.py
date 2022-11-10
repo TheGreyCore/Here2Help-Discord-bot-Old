@@ -1,8 +1,9 @@
 # -*- coding: utf8 -*-
 # ------------------------------------
 import asyncio
+import os
 import sys
-sys.path.insert(0, '/root/loovtoo')
+sys.path.insert(0, f'{os.path.dirname()}')
 # ------------------------------------
 import discord
 from discord.ext import commands
@@ -29,5 +30,5 @@ async def roll (ctx, arg1: int=None, arg2: int = None):
                 await ctx.channel.send(embed = embed)
 
 def setup(bot):
-    # Lisame käsk
+    # Add command
     bot.add_command(roll)
